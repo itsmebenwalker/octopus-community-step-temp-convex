@@ -111,44 +111,63 @@ Repeat for each of the five JSON files in `docs/`:
 
 The template will appear in the step picker when you add steps to a deployment process.
 
-### 8. Set up the deployment process
+### 8. Add the GitHub Actions secret
 
-In your Octopus project, go to **Deployments → Process → Add Step** and add the five steps in this order:
+The workflow in `.github/workflows/package-deployment.yml` pushes packages to Octopus automatically on every push to `sample-app/`.
 
-**Step 1 — Convex - Set Environment Variables**
+In your GitHub repo go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Value |
+|---|---|
+| `OCTOPUS_API_KEY` | An Octopus API key — generate one in **your Octopus profile → API Keys** |
+
+Once that's set, pushing any change to `sample-app/` will trigger the workflow, which packages `sample-app/`, pushes it to the Octopus built-in feed as `convex-sample-app`, and creates a release.
+
+### 9. Set up the deployment process
+
+The deployment process is already defined in `.octopus/deployment_process.ocl` and will sync to Octopus automatically. If you prefer to set it up manually in the UI, go to **Deployments → Process → Add Step** and add these steps in order:
+
+**Step 1 — Deploy a Package** *(gets the sample-app files onto the worker)*
+
+- Package: `convex-sample-app` (from built-in feed)
+- Extract package: enabled
+
+**Step 2 — Convex - Set Environment Variables**
 
 | Parameter | Value |
 |---|---|
 | Deploy Key | `#{Convex.DeployKey}` |
 | Deployment Type | `dev` |
 | Environment Variables | `MY_TEST_VAR=hello_from_octopus` |
+| Working Directory | `#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}` |
 
-**Step 2 — Convex - Export Data** *(pre-deploy backup)*
+**Step 3 — Convex - Export Data** *(pre-deploy backup)*
 
 | Parameter | Value |
 |---|---|
 | Deploy Key | `#{Convex.DeployKey}` |
 | Deployment Type | `dev` |
 | Capture as Artifact | `True` |
+| Working Directory | `#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}` |
 
-**Step 3 — Convex - Deploy**
+**Step 4 — Convex - Deploy**
 
 | Parameter | Value |
 |---|---|
 | Deploy Key | `#{Convex.DeployKey}` |
 | Deployment Type | `dev` |
-| Working Directory | `sample-app` |
+| Working Directory | `#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}` |
 
-**Step 4 — Convex - Run Function** *(post-deploy seed)*
+**Step 5 — Convex - Run Function** *(post-deploy seed)*
 
 | Parameter | Value |
 |---|---|
 | Deploy Key | `#{Convex.DeployKey}` |
 | Function Path | `migrations:seedTasks` |
 | Deployment Type | `dev` |
-| Working Directory | `sample-app` |
+| Working Directory | `#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}` |
 
-**Step 5 — Convex - Smoke Test HTTP Action**
+**Step 6 — Convex - Smoke Test HTTP Action**
 
 | Parameter | Value |
 |---|---|
@@ -157,12 +176,14 @@ In your Octopus project, go to **Deployments → Process → Add Step** and add 
 | Expected Status Code | `200` |
 | Response Body Assertion | `"status":"ok"` |
 
-### 9. Create a release and deploy
+### 10. Trigger a deployment
 
-1. Go to **Deployments → Releases → Create Release**
-2. Click **Deploy** to your target environment
-3. Watch the task log — each step should print a success message
-4. After the run, check the **Artifacts** tab for the export ZIP from Step 2
+Push any change to `sample-app/` to trigger the GitHub Actions workflow. It will:
+
+1. Package `sample-app/` and push it to the Octopus built-in feed
+2. Create a new release in Octopus
+
+Then in Octopus, go to the release and click **Deploy** to your target environment. Watch the task log — each step should print a success message. After the run, check the **Artifacts** tab for the export ZIP from Step 3.
 
 ---
 
