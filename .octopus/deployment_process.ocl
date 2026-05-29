@@ -6,7 +6,7 @@ step "convex-set-environment-variables" {
             ConvexEnvSet.DeployKey = "#{Convex.DeployKey}"
             ConvexEnvSet.DeploymentType = "dev"
             ConvexEnvSet.EnvironmentVariables = "MY_TEST_VAR=hello_from_octopus"
-            Octopus.Action.Template.Id = "ActionTemplates-24"
+            Octopus.Action.Template.Id = "ActionTemplates-31"
             Octopus.Action.Template.Version = "1"
         }
         worker_pool = "hosted-ubuntu"
@@ -23,7 +23,7 @@ step "convex-export-data" {
             ConvexExport.DeployKey = "#{Convex.DeployKey}"
             ConvexExport.DeploymentType = "dev"
             ConvexExport.WorkingDirectory = "sample-app"
-            Octopus.Action.Template.Id = "ActionTemplates-22"
+            Octopus.Action.Template.Id = "ActionTemplates-29"
             Octopus.Action.Template.Version = "1"
         }
         worker_pool = "hosted-ubuntu"
@@ -39,7 +39,7 @@ step "convex-deploy" {
             ConvexDeploy.DeployKey = "#{Convex.DeployKey}"
             ConvexDeploy.DeploymentType = "dev"
             ConvexDeploy.WorkingDirectory = "sample-app"
-            Octopus.Action.Template.Id = "ActionTemplates-21"
+            Octopus.Action.Template.Id = "ActionTemplates-28"
             Octopus.Action.Template.Version = "1"
         }
         worker_pool = "hosted-ubuntu"
@@ -56,7 +56,7 @@ step "convex-run-function" {
             ConvexRun.DeploymentType = "dev"
             ConvexRun.FunctionPath = "migrations:seedTasks"
             ConvexRun.WorkingDirectory = "sample-app"
-            Octopus.Action.Template.Id = "ActionTemplates-23"
+            Octopus.Action.Template.Id = "ActionTemplates-30"
             Octopus.Action.Template.Version = "1"
         }
         worker_pool = "hosted-ubuntu"
