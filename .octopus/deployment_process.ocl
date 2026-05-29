@@ -64,7 +64,7 @@ step "convex-deploy" {
             ConvexDeploy.DeployKey = "#{Convex.DeployKey}"
             ConvexDeploy.DeploymentType = "dev"
             ConvexDeploy.WorkingDirectory = "#{Octopus.Action.Package[convex-sample-app].ExtractedPath}"
-            Octopus.Action.Template.Id = "ActionTemplates-28"
+            Octopus.Action.Template.Id = "ActionTemplates-32"
             Octopus.Action.Template.Version = "1"
         }
         worker_pool = "hosted-ubuntu"
