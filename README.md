@@ -26,106 +26,203 @@ sample-app/
     └── migrations.ts    # migrations:seedTasks     → used by Convex - Run Function
 ```
 
-## Prerequisites
-
-- Node.js 18+
-- An [Octopus Deploy](https://octopus.com) instance
-- A Convex account and project — [get started](https://docs.convex.dev/get-started)
-- A Convex deploy key — generate one with `npx convex deployment token --prod` and store it as a sensitive Octopus variable (e.g. `Convex.DeployKey`)
+---
 
 ## Setup
 
+### 1. Prerequisites
+
+- **Node.js 18+** — check with `node --version`
+- **An Octopus Deploy instance** — [sign up](https://octopus.com/start) or use an existing server
+- **A Convex account** — [sign up free at convex.dev](https://dashboard.convex.dev)
+
+### 2. Clone and install
+
+```bash
+git clone https://github.com/itsmebenwalker/octopus-community-step-temp-convex.git
+cd octopus-community-step-temp-convex/sample-app
+npm install
+```
+
+### 3. Create a Convex project
+
+If you don't already have a Convex project:
+
+1. Go to [dashboard.convex.dev](https://dashboard.convex.dev) and sign in
+2. Click **New project**, give it a name (e.g. `octopus-test`)
+3. Run `npx convex dev` from `sample-app/` — this links the local project to your Convex deployment and generates the `convex/_generated/` files
+
 ```bash
 cd sample-app
-npm install
-# Link to your Convex project (run once):
 npx convex dev
+# Follow the prompts to log in and select your project
+# Press Ctrl+C once it's linked — you don't need it running
 ```
 
-## Importing Step Templates
+After this you'll have a `convex.json` in `sample-app/` pointing at your deployment.
+
+### 4. Get your deploy key
+
+The Octopus steps authenticate to Convex using a deploy key (not your login credentials).
+
+1. In the [Convex dashboard](https://dashboard.convex.dev), open your project
+2. Go to **Settings → URL & Deploy Key**
+3. Copy the **Deploy key** value — it starts with `prod:`
+
+Or generate one from the CLI:
+
+```bash
+npx convex deployment token --prod
+```
+
+Keep this value — you'll need it in step 6.
+
+### 5. Find your deployment URL
+
+On the same **Settings → URL & Deploy Key** page, copy the **HTTP Actions URL** — it looks like:
+
+```
+https://happy-animal-123.convex.site
+```
+
+You'll need this for the Smoke Test step.
+
+### 6. Add variables in Octopus
+
+In your Octopus project, go to **Variables** and add:
+
+| Variable name | Value | Type |
+|---|---|---|
+| `Convex.DeployKey` | The deploy key from step 4 | **Sensitive** |
+| `Convex.DeploymentUrl` | Your `.convex.site` URL from step 5 | Text |
+
+### 7. Import the step templates
+
+Repeat for each of the five JSON files in `docs/`:
 
 1. In the Octopus Web Portal go to **Library → Step Templates**
-2. Click **Import** in the custom step templates section
-3. Paste the contents of a JSON file from `docs/` and click **Save**
+2. Click **Import** (top right of the custom templates section)
+3. Open one of the JSON files, copy all the contents, paste into the import dialog
+4. Click **Save**
 
-## Recommended Pipeline
+The template will appear in the step picker when you add steps to a deployment process.
 
-Use all five steps in this order for a full Convex deployment pipeline:
+### 8. Set up the deployment process
 
-```
-Step 1: Convex - Set Environment Variables   (sync secrets pre-deploy)
-         ConvexEnvSet.DeployKey      = #{Convex.DeployKey}
-         ConvexEnvSet.EnvironmentVariables = MY_VAR=#{Project.MyVar}
+In your Octopus project, go to **Deployments → Process → Add Step** and add the five steps in this order:
 
-Step 2: Convex - Export Data                 (backup before touching prod)
-         ConvexExport.DeployKey      = #{Convex.DeployKey}
-         ConvexExport.CaptureAsArtifact = True
+**Step 1 — Convex - Set Environment Variables**
 
-Step 3: Convex - Deploy                      (push functions + schema)
-         ConvexDeploy.DeployKey      = #{Convex.DeployKey}
-         ConvexDeploy.WorkingDirectory = sample-app
+| Parameter | Value |
+|---|---|
+| Deploy Key | `#{Convex.DeployKey}` |
+| Deployment Type | `prod` |
+| Environment Variables | `MY_TEST_VAR=hello_from_octopus` |
 
-Step 4: Convex - Run Function                (run migrations / seed data)
-         ConvexRun.DeployKey         = #{Convex.DeployKey}
-         ConvexRun.FunctionPath      = migrations:seedTasks
-         ConvexRun.WorkingDirectory  = sample-app
+**Step 2 — Convex - Export Data** *(pre-deploy backup)*
 
-Step 5: Convex - Smoke Test HTTP Action      (verify deployment is healthy)
-         ConvexSmokeTest.DeploymentUrl = https://your-deployment.convex.site
-         ConvexSmokeTest.ActionPath    = /health
-         ConvexSmokeTest.ResponseBodyAssertion = "status":"ok"
-```
+| Parameter | Value |
+|---|---|
+| Deploy Key | `#{Convex.DeployKey}` |
+| Deployment Type | `prod` |
+| Capture as Artifact | `True` |
 
-## Testing Individual Steps
+**Step 3 — Convex - Deploy**
+
+| Parameter | Value |
+|---|---|
+| Deploy Key | `#{Convex.DeployKey}` |
+| Deployment Type | `prod` |
+| Working Directory | `sample-app` |
+
+**Step 4 — Convex - Run Function** *(post-deploy seed)*
+
+| Parameter | Value |
+|---|---|
+| Deploy Key | `#{Convex.DeployKey}` |
+| Function Path | `migrations:seedTasks` |
+| Deployment Type | `prod` |
+| Working Directory | `sample-app` |
+
+**Step 5 — Convex - Smoke Test HTTP Action**
+
+| Parameter | Value |
+|---|---|
+| Deployment URL | `#{Convex.DeploymentUrl}` |
+| Action Path | `/health` |
+| Expected Status Code | `200` |
+| Response Body Assertion | `"status":"ok"` |
+
+### 9. Create a release and deploy
+
+1. Go to **Deployments → Releases → Create Release**
+2. Click **Deploy** to your target environment
+3. Watch the task log — each step should print a success message
+4. After the run, check the **Artifacts** tab for the export ZIP from Step 2
+
+---
+
+## Testing Steps Locally
+
+You can verify each step's underlying CLI commands work before wiring them into Octopus.
 
 ### Convex - Deploy
 
 ```bash
-export CONVEX_DEPLOY_KEY="your-deploy-key"
+export CONVEX_DEPLOY_KEY="prod:your-key-here"
 cd sample-app
 npx convex deploy --yes
+# Look for: "Convex deployment completed successfully."
 ```
 
 ### Convex - Set Environment Variables
 
 ```bash
-export CONVEX_DEPLOY_KEY="your-deploy-key"
+export CONVEX_DEPLOY_KEY="prod:your-key-here"
 cd sample-app
 npx convex env set --prod MY_TEST_VAR hello_world
 npx convex env list --prod
+# MY_TEST_VAR should appear in the list
 ```
 
 ### Convex - Run Function
 
 ```bash
-export CONVEX_DEPLOY_KEY="your-deploy-key"
+export CONVEX_DEPLOY_KEY="prod:your-key-here"
 cd sample-app
+# Health check query
 npx convex run --prod healthcheck:ping
-# Expected: { status: "ok", timestamp: ... }
+# Expected: { status: "ok", timestamp: 1234567890 }
 
+# Seed mutation (idempotent — safe to run multiple times)
 npx convex run --prod migrations:seedTasks
 # Expected: { seeded: true, message: "Seeded 3 tasks." }
+# Second run: { seeded: false, message: "Tasks already exist, skipping seed." }
 ```
 
 ### Convex - Export Data
 
 ```bash
-export CONVEX_DEPLOY_KEY="your-deploy-key"
+export CONVEX_DEPLOY_KEY="prod:your-key-here"
 cd sample-app
 npx convex export --prod --path ./test-export.zip
 ls -lh test-export.zip
+# Should show a non-zero size ZIP
 ```
 
 ### Convex - Smoke Test HTTP Action
 
 ```bash
-# After deploying, find your .convex.site URL in the Convex dashboard
-curl https://your-deployment.convex.site/health
+# Replace with your actual .convex.site URL
+curl -s https://happy-animal-123.convex.site/health
 # Expected: {"status":"ok"}
 ```
+
+---
 
 ## See Also
 
 - [Octopus Community Library](https://library.octopus.com)
 - [Convex CLI docs](https://docs.convex.dev/cli)
 - [Convex HTTP actions](https://docs.convex.dev/functions/http-actions)
+- [Convex dashboard](https://dashboard.convex.dev)
