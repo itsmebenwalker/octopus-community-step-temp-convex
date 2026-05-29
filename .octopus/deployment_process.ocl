@@ -6,6 +6,7 @@ step "convex-set-environment-variables" {
             ConvexEnvSet.DeployKey = "#{Convex.DeployKey}"
             ConvexEnvSet.DeploymentType = "dev"
             ConvexEnvSet.EnvironmentVariables = "MY_TEST_VAR=hello_from_octopus"
+            ConvexEnvSet.WorkingDirectory = "sample-app"
             Octopus.Action.Template.Id = "ActionTemplates-31"
             Octopus.Action.Template.Version = "1"
         }
