@@ -1,0 +1,93 @@
+{
+  "Id": "a1b2c3d4-e5f6-7890-abcd-ef1234567803",
+  "Name": "Convex - Run Function",
+  "Description": "Invokes a Convex mutation, action, or query against a deployment using the [Convex CLI](https://docs.convex.dev/cli). Ideal for running post-deploy data migrations, seeding initial data, or executing smoke-test queries as part of a deployment pipeline.",
+  "ActionType": "Octopus.Script",
+  "Version": 1,
+  "CommunityActionTemplateId": null,
+  "Packages": [],
+  "Properties": {
+    "Octopus.Action.Script.ScriptSource": "Inline",
+    "Octopus.Action.Script.Syntax": "Bash",
+    "Octopus.Action.Script.ScriptBody": "deployKey=$(get_octopusvariable \"ConvexRun.DeployKey\")\nfunctionPath=$(get_octopusvariable \"ConvexRun.FunctionPath\")\nfunctionArgs=$(get_octopusvariable \"ConvexRun.FunctionArgs\")\ndeploymentType=$(get_octopusvariable \"ConvexRun.DeploymentType\")\npreviewName=$(get_octopusvariable \"ConvexRun.PreviewName\")\nworkingDir=$(get_octopusvariable \"ConvexRun.WorkingDirectory\")\ncmdTimeout=$(get_octopusvariable \"ConvexRun.CommandTimeout\")\n\nif [ -z \"$deployKey\" ]; then\n  echo \"ERROR: ConvexRun.DeployKey is required.\"\n  exit 1\nfi\n\nif [ -z \"$functionPath\" ]; then\n  echo \"ERROR: ConvexRun.FunctionPath is required.\"\n  exit 1\nfi\n\nif [ -z \"$deploymentType\" ]; then\n  deploymentType=\"prod\"\nfi\n\nif [ -z \"$cmdTimeout\" ]; then\n  cmdTimeout=\"120\"\nfi\n\nexport CONVEX_DEPLOY_KEY=\"$deployKey\"\n\nif [ -n \"$workingDir\" ]; then\n  echo \"Changing to working directory: $workingDir\"\n  cd \"$workingDir\" || { echo \"ERROR: Could not change to directory '$workingDir'\"; exit 1; }\nfi\n\ndeploymentFlag=\"\"\ncase \"$deploymentType\" in\n  prod)\n    deploymentFlag=\"--prod\"\n    ;;\n  preview)\n    if [ -z \"$previewName\" ]; then\n      echo \"ERROR: ConvexRun.PreviewName is required when deployment type is 'preview'.\"\n      exit 1\n    fi\n    deploymentFlag=\"--preview-name $previewName\"\n    ;;\n  dev)\n    deploymentFlag=\"\"\n    ;;\nesac\n\necho \"Running Convex function: $functionPath\"\necho \"Deployment type: $deploymentType\"\n\nif [ -n \"$functionArgs\" ]; then\n  echo \"Args: $functionArgs\"\n  timeout \"$cmdTimeout\" npx convex run $deploymentFlag \"$functionPath\" \"$functionArgs\"\nelse\n  timeout \"$cmdTimeout\" npx convex run $deploymentFlag \"$functionPath\"\nfi\n\nexitCode=$?\nif [ $exitCode -ne 0 ]; then\n  echo \"ERROR: Convex function '$functionPath' failed with exit code $exitCode.\"\n  exit $exitCode\nfi\n\necho \"Convex function '$functionPath' completed successfully.\"\n"
+  },
+  "Parameters": [
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000001",
+      "Name": "ConvexRun.DeployKey",
+      "Label": "Deploy Key",
+      "HelpText": "The Convex deploy key for the target project. Store this as a sensitive Octopus variable.\n\nSee: [Creating deploy keys](https://docs.convex.dev/cli#deploy-keys)",
+      "DefaultValue": "",
+      "DisplaySettings": {
+        "Octopus.ControlType": "Sensitive"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000002",
+      "Name": "ConvexRun.FunctionPath",
+      "Label": "Function Path",
+      "HelpText": "The path to the Convex function to invoke, in the format `module:functionName`.\n\nExamples:\n- `migrations:runV2`\n- `seed:populateDefaults`\n- `healthcheck:ping`",
+      "DefaultValue": "",
+      "DisplaySettings": {
+        "Octopus.ControlType": "SingleLineText"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000003",
+      "Name": "ConvexRun.FunctionArgs",
+      "Label": "Function Arguments (JSON)",
+      "HelpText": "Optional. A JSON object of arguments to pass to the function.\n\nExample: `{\"dryRun\": false, \"batchSize\": 100}`\n\nLeave blank if the function takes no arguments.",
+      "DefaultValue": "",
+      "DisplaySettings": {
+        "Octopus.ControlType": "MultiLineText"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000004",
+      "Name": "ConvexRun.DeploymentType",
+      "Label": "Deployment Type",
+      "HelpText": "The Convex deployment to target.\n\n- `prod` — production deployment (default)\n- `preview` — preview deployment (requires a preview name)\n- `dev` — development deployment",
+      "DefaultValue": "prod",
+      "DisplaySettings": {
+        "Octopus.ControlType": "Select",
+        "Octopus.SelectOptions": "prod|Production\npreview|Preview\ndev|Development"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000005",
+      "Name": "ConvexRun.PreviewName",
+      "Label": "Preview Name",
+      "HelpText": "The name of the preview deployment. Only required when **Deployment Type** is `preview`.",
+      "DefaultValue": "",
+      "DisplaySettings": {
+        "Octopus.ControlType": "SingleLineText"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000006",
+      "Name": "ConvexRun.WorkingDirectory",
+      "Label": "Working Directory",
+      "HelpText": "Optional. Path to the directory containing your Convex project. Defaults to the current working directory if left blank.",
+      "DefaultValue": "",
+      "DisplaySettings": {
+        "Octopus.ControlType": "SingleLineText"
+      }
+    },
+    {
+      "Id": "p3a2b3c4-0003-0000-0000-000000000007",
+      "Name": "ConvexRun.CommandTimeout",
+      "Label": "Command Timeout (seconds)",
+      "HelpText": "Maximum number of seconds to wait for the function to complete. Defaults to 120.",
+      "DefaultValue": "120",
+      "DisplaySettings": {
+        "Octopus.ControlType": "SingleLineText"
+      }
+    }
+  ],
+  "LastModifiedBy": "your-github-username",
+  "$Meta": {
+    "ExportedAt": "2025-01-01T00:00:00.000Z",
+    "OctopusVersion": "2024.1.0",
+    "Type": "ActionTemplate"
+  }
+}

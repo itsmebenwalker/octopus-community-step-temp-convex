@@ -1,0 +1,12 @@
+{
+  "name": "convex-octopus-sample",
+  "version": "1.0.0",
+  "description": "Sample Convex app for testing Octopus Deploy community step templates",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy --yes"
+  },
+  "dependencies": {
+    "convex": "^1.17.0"
+  }
+}
