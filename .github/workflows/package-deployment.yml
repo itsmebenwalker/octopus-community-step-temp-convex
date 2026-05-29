@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions.
-
 name: Create Octopus Deploy Package and Release
 
 # Controls when the workflow will run.
