@@ -12,7 +12,7 @@ param (
 )
 
 $ArtifactsDir = Join-Path $PSScriptRoot '..' 'artifacts'
-$SourcePath = Join-Path $PSScriptRoot '..' $Path
+$SourcePath = Join-Path $PSScriptRoot '..' $Path '*'
 $DestinationPath = Join-Path $ArtifactsDir "$PackageName.$Version.zip"
 
 if (-Not (Test-Path -Path $ArtifactsDir)) {
