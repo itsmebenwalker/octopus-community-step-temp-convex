@@ -1,0 +1,84 @@
+step "convex-set-environment-variables" {
+    name = "Convex - Set Environment Variables"
+
+    action {
+        properties = {
+            ConvexEnvSet.DeployKey = "#{Convex.DeployKey}"
+            ConvexEnvSet.DeploymentType = "dev"
+            ConvexEnvSet.EnvironmentVariables = "MY_TEST_VAR=hello_from_octopus"
+            Octopus.Action.Template.Id = "ActionTemplates-24"
+            Octopus.Action.Template.Version = "1"
+        }
+        worker_pool = "hosted-ubuntu"
+    }
+}
+
+step "convex-export-data" {
+    name = "Convex - Export Data"
+
+    action {
+        properties = {
+            ConvexExport.CaptureAsArtifact = "True"
+            ConvexExport.CommandTimeout = "600"
+            ConvexExport.DeployKey = "#{Convex.DeployKey}"
+            ConvexExport.DeploymentType = "dev"
+            ConvexExport.WorkingDirectory = "sample-app"
+            Octopus.Action.Template.Id = "ActionTemplates-22"
+            Octopus.Action.Template.Version = "1"
+        }
+        worker_pool = "hosted-ubuntu"
+    }
+}
+
+step "convex-deploy" {
+    name = "Convex - Deploy"
+
+    action {
+        properties = {
+            ConvexDeploy.CommandTimeout = "300"
+            ConvexDeploy.DeployKey = "#{Convex.DeployKey}"
+            ConvexDeploy.DeploymentType = "dev"
+            ConvexDeploy.WorkingDirectory = "sample-app"
+            Octopus.Action.Template.Id = "ActionTemplates-21"
+            Octopus.Action.Template.Version = "1"
+        }
+        worker_pool = "hosted-ubuntu"
+    }
+}
+
+step "convex-run-function" {
+    name = "Convex - Run Function"
+
+    action {
+        properties = {
+            ConvexRun.CommandTimeout = "120"
+            ConvexRun.DeployKey = "#{Convex.DeployKey}"
+            ConvexRun.DeploymentType = "dev"
+            ConvexRun.FunctionPath = "migrations:seedTasks"
+            ConvexRun.WorkingDirectory = "sample-app"
+            Octopus.Action.Template.Id = "ActionTemplates-23"
+            Octopus.Action.Template.Version = "1"
+        }
+        worker_pool = "hosted-ubuntu"
+    }
+}
+
+step "convex-smoke-test-http-action" {
+    name = "Convex - Smoke Test HTTP Action"
+
+    action {
+        properties = {
+            ConvexSmokeTest.ActionPath = "/health"
+            ConvexSmokeTest.CurlTimeout = "30"
+            ConvexSmokeTest.DeploymentUrl = "#{Convex.DeploymentUrl}"
+            ConvexSmokeTest.ExpectedStatusCode = "200"
+            ConvexSmokeTest.HttpMethod = "GET"
+            ConvexSmokeTest.MaxRetries = "3"
+            ConvexSmokeTest.ResponseBodyAssertion = "\"status\":\"ok\""
+            ConvexSmokeTest.RetryDelay = "5"
+            Octopus.Action.Template.Id = "ActionTemplates-25"
+            Octopus.Action.Template.Version = "1"
+        }
+        worker_pool = "hosted-ubuntu"
+    }
+}
