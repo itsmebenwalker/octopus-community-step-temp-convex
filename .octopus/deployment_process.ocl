@@ -1,36 +1,20 @@
-step "deploy-convex-sample-app" {
-    name = "Deploy convex-sample-app"
+step "convex-set-environment-variables" {
+    name = "Convex - Set Environment Variables"
 
     action {
-        action_type = "Octopus.TentaclePackage"
-        properties = {
-            Octopus.Action.Package.DownloadOnTentacle = "False"
-            Octopus.Action.Package.FeedId = "feeds-builtin"
-            Octopus.Action.Package.PackageId = "convex-sample-app"
-        }
-        worker_pool = "hosted-ubuntu"
-
-        packages {
+        packages "convex-sample-app" {
             acquisition_location = "Server"
-            feed = "feeds-builtin"
             package_id = "convex-sample-app"
             properties = {
                 Extract = "True"
                 SelectionMode = "immediate"
             }
         }
-    }
-}
-
-step "convex-set-environment-variables" {
-    name = "Convex - Set Environment Variables"
-
-    action {
         properties = {
             ConvexEnvSet.DeployKey = "#{Convex.DeployKey}"
             ConvexEnvSet.DeploymentType = "dev"
             ConvexEnvSet.EnvironmentVariables = "MY_TEST_VAR=hello_from_octopus"
-            ConvexEnvSet.WorkingDirectory = "#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}"
+            ConvexEnvSet.WorkingDirectory = "#{Octopus.Action.Package[convex-sample-app].ExtractedPath}"
             Octopus.Action.Template.Id = "ActionTemplates-31"
             Octopus.Action.Template.Version = "1"
         }
@@ -42,12 +26,20 @@ step "convex-export-data" {
     name = "Convex - Export Data"
 
     action {
+        packages "convex-sample-app" {
+            acquisition_location = "Server"
+            package_id = "convex-sample-app"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+        }
         properties = {
             ConvexExport.CaptureAsArtifact = "True"
             ConvexExport.CommandTimeout = "600"
             ConvexExport.DeployKey = "#{Convex.DeployKey}"
             ConvexExport.DeploymentType = "dev"
-            ConvexExport.WorkingDirectory = "#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}"
+            ConvexExport.WorkingDirectory = "#{Octopus.Action.Package[convex-sample-app].ExtractedPath}"
             Octopus.Action.Template.Id = "ActionTemplates-29"
             Octopus.Action.Template.Version = "1"
         }
@@ -59,11 +51,19 @@ step "convex-deploy" {
     name = "Convex - Deploy"
 
     action {
+        packages "convex-sample-app" {
+            acquisition_location = "Server"
+            package_id = "convex-sample-app"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+        }
         properties = {
             ConvexDeploy.CommandTimeout = "300"
             ConvexDeploy.DeployKey = "#{Convex.DeployKey}"
             ConvexDeploy.DeploymentType = "dev"
-            ConvexDeploy.WorkingDirectory = "#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}"
+            ConvexDeploy.WorkingDirectory = "#{Octopus.Action.Package[convex-sample-app].ExtractedPath}"
             Octopus.Action.Template.Id = "ActionTemplates-28"
             Octopus.Action.Template.Version = "1"
         }
@@ -75,12 +75,20 @@ step "convex-run-function" {
     name = "Convex - Run Function"
 
     action {
+        packages "convex-sample-app" {
+            acquisition_location = "Server"
+            package_id = "convex-sample-app"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+        }
         properties = {
             ConvexRun.CommandTimeout = "120"
             ConvexRun.DeployKey = "#{Convex.DeployKey}"
             ConvexRun.DeploymentType = "dev"
             ConvexRun.FunctionPath = "migrations:seedTasks"
-            ConvexRun.WorkingDirectory = "#{Octopus.Action[Deploy convex-sample-app].Output.Package.InstallationDirectoryPath}"
+            ConvexRun.WorkingDirectory = "#{Octopus.Action.Package[convex-sample-app].ExtractedPath}"
             Octopus.Action.Template.Id = "ActionTemplates-30"
             Octopus.Action.Template.Version = "1"
         }
