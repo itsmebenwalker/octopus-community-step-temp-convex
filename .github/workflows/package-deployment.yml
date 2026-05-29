@@ -1,0 +1,68 @@
+# This is a basic workflow to help you get started with Actions.
+
+name: Create Octopus Deploy Package and Release
+
+# Controls when the workflow will run.
+on:
+  push:
+    branches: '**'
+    paths:
+      - 'sample-app/**'
+      - '.github/workflows/package-deployment.yml'
+      - '.octopus/**'
+      - 'build/**'
+
+  workflow_dispatch:
+
+env:
+  VERSION: 1.0.${{ github.run_number }}
+  OCTOPUS_URL: https://itsmebenwalker.octopus.app
+  OCTOPUS_SPACE: 'Default'
+  OCTOPUS_PROJECT: 'octopus-community-step-temp-convex'
+  OCTOPUS_CHANNEL: 'Default'
+  OCTOPUS_PACKAGE_ID: 'convex-sample-app'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Calculate version number
+        shell: pwsh
+        run: ./build/calculate-version-number.ps1 -RunNumber "${{ github.run_number }}" -Branch "${{ github.ref_name }}"
+
+      - name: Package sample-app folder
+        shell: pwsh
+        run: ./build/package-infrastructure.ps1 -Version ${{ env.VERSION }} -Path "sample-app" -PackageName ${{ env.OCTOPUS_PACKAGE_ID }}
+
+      - name: Login to Octopus Deploy
+        uses: OctopusDeploy/login@v1
+        with:
+          server: ${{ env.OCTOPUS_URL }}
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+
+      - name: Push package to Octopus
+        uses: OctopusDeploy/push-package-action@v3.2.4
+        with:
+          packages: |
+            ./artifacts/${{ env.OCTOPUS_PACKAGE_ID }}.${{ env.VERSION }}.zip
+          server: ${{ env.OCTOPUS_URL }}
+          space: ${{ env.OCTOPUS_SPACE }}
+
+      - name: Create Release in Octopus
+        uses: OctopusDeploy/create-release-action@v3
+        with:
+          project: ${{ env.OCTOPUS_PROJECT }}
+          package_version: ${{ env.VERSION }}
+          release_number: ${{ env.VERSION }}
+          channel: ${{ env.OCTOPUS_CHANNEL }}
+          git_ref: ${{ github.ref }}
+          space: ${{ env.OCTOPUS_SPACE }}
+          packages: |
+            ${{ env.OCTOPUS_PACKAGE_ID }}:${{ env.VERSION }}
